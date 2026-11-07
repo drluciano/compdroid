@@ -125,8 +125,10 @@ def write_title_keys(tickets: Sequence[Path], dst: Path) -> int:
 
 # ---------- hactoolnet ----------
 
-def find_hactoolnet(explicit: str | os.PathLike | None = None) -> list[str]:
-    """Command prefix for hactoolnet. Order: explicit path, tools/ next to the repo, PATH."""
+def find_hactoolnet(explicit: str | os.PathLike | None = None, auto_download: bool = False,
+                    log: Log = print) -> list[str]:
+    """Command prefix for hactoolnet. Order: explicit path, tools/ next to the repo, PATH,
+    then (with auto_download) a fresh download from LibHac's releases into tools/."""
     cands: list[Path] = []
     if explicit:
         cands.append(Path(explicit))
@@ -139,6 +141,10 @@ def find_hactoolnet(explicit: str | os.PathLike | None = None) -> list[str]:
         w = shutil.which(name)
         if w:
             return [w]
+    if auto_download:
+        from .autosetup import download_hactoolnet
+
+        return [str(download_hactoolnet(repo_tools, log=log))]
     raise ExtractError(
         "hactoolnet not found. Download it from LibHac's releases "
         "(github.com/Thealexbarney/LibHac/releases) and put hactoolnet.exe in the repo's tools/ "
@@ -261,15 +267,18 @@ class ExtractResult:
     update_nca: Path | None
 
 
-def extract_package(package: str | os.PathLike, keys: str | os.PathLike, out_root: str | os.PathLike,
+def extract_package(package: str | os.PathLike, keys: str | os.PathLike | None, out_root: str | os.PathLike,
                     update: str | os.PathLike | None = None, hactoolnet: Sequence[str] | str | None = None,
                     nsz: Sequence[str] | None = None, keep_intermediate: bool = False,
                     log: Log = print) -> ExtractResult:
     package = Path(package)
     out_root = Path(out_root)
-    cmd = list(hactoolnet) if isinstance(hactoolnet, (list, tuple)) else find_hactoolnet(hactoolnet)
     if not package.is_file():
         raise ExtractError(f"{package} not found")
+    if not keys:
+        raise ExtractError("choose your prod.keys file")
+    cmd = list(hactoolnet) if isinstance(hactoolnet, (list, tuple)) else \
+        find_hactoolnet(hactoolnet, auto_download=True, log=log)
     work = out_root / "_work"
     work.mkdir(parents=True, exist_ok=True)
     tool = Hactoolnet(cmd, Path(keys), log=log)

@@ -48,7 +48,8 @@ def cmd_extract(args: argparse.Namespace) -> int:
     res = extract_package(args.package, keys, _out_dir(args, cfg) / Path(args.package).stem, update=args.update,
                           hactoolnet=args.hactoolnet or cfg.hactoolnet_path or None)
     if args.remember:
-        cfg.keys_path = str(Path(keys).resolve())
+        if keys:
+            cfg.keys_path = str(Path(keys).resolve())
         if args.hactoolnet:
             cfg.hactoolnet_path = str(Path(args.hactoolnet).resolve())
         cfg.save()

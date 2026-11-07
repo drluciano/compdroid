@@ -14,7 +14,8 @@ Full research and plan: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 > **No game files, keys or firmware are included or downloaded.** You supply your own game
 > (`.nsp`, `.nsz`, `.xci`, `.xcz`, or an extracted `exefs/` + `romfs/` folder) and your own
 > `prod.keys` from your console. CompDroid has no decryption code: packages are opened by
-> [hactoolnet](https://github.com/Thealexbarney/LibHac/releases), which you download into `tools/`.
+> [hactoolnet](https://github.com/Thealexbarney/LibHac/releases), which CompDroid downloads into
+> `tools/` automatically the first time.
 > No firmware is needed. APKs it builds contain your game's code: keep them on your own devices.
 
 ## Status
@@ -33,8 +34,8 @@ Requires Python 3.11+ from python.org or `winget install Python.Python.3.12` (Tk
 
 Easiest: double-click **`CompDroid.pyw`** in the repo folder. No install needed.
 
-To open `.nsp` / `.xci` directly, download `hactoolnet` from
-[LibHac's releases](https://github.com/Thealexbarney/LibHac/releases) into `tools\`
+`.nsp` / `.xci` open directly: the first time, CompDroid downloads `hactoolnet` from
+[LibHac's releases](https://github.com/Thealexbarney/LibHac/releases) into `tools\` by itself
 (see [tools/README.md](tools/README.md)). For `.nsz` / `.xcz`, also run `py -m pip install nsz`.
 In the window: **Package…**, pick your game, point **prod.keys** at your keys file, optionally add
 an update package, then **Open**. The extracted game goes to `%USERPROFILE%\CompDroid\out\<name>\game`.
