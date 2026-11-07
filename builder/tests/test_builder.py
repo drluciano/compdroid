@@ -127,3 +127,17 @@ def test_cli_json(tmp_path, capsys):
 def test_cli_error_exit(tmp_path, capsys):
     assert main(["inspect", os.fspath(tmp_path)]) == 2
     assert "error:" in capsys.readouterr().err
+
+
+def test_settings_roundtrip_and_validation(tmp_path):
+    from compdroid.settings import GameSettings, settings_path
+
+    s = GameSettings(target_fps="60", upscaler="Snapdragon GSR 1", frame_generation="60 to 120",
+                     resolution_scale=75)
+    assert s.validate() == []
+    p = settings_path(tmp_path, "0100000000ABC000")
+    s.save(p)
+    assert GameSettings.load(p) == s
+    assert GameSettings.load(tmp_path / "missing.json") == GameSettings()
+    bad = GameSettings(driver="Custom driver (zip)", resolution_scale=500, target_fps="144")
+    assert len(bad.validate()) == 3

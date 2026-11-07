@@ -20,7 +20,7 @@ Full research and plan: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 | Milestone | What | State |
 | --- | --- | --- |
-| M0 | Builder CLI: dump inspector, native-mode scanner, profile format | done |
+| M0 | Builder CLI + desktop window: dump inspector, native-mode scanner, in-game defaults, profiles | done |
 | M1 | Runtime template APK, inject, sign, adb install + romfs push | next |
 | M2 | First game boots natively (Link's Awakening) | |
 | M3 | In-game settings overlay (driver, FPS, resolution, upscaling, frame gen) | |
@@ -28,13 +28,25 @@ Full research and plan: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Builder quick start (Windows)
 
-Requires Python 3.11+ (`winget install Python.Python.3.12`).
+Requires Python 3.11+ from python.org or `winget install Python.Python.3.12` (Tkinter is included).
 
 ```powershell
 py -m pip install -e builder
-compdroid inspect D:\dumps\MyGame      # folder holding exefs\ and romfs\
+compdroid-gui                            # the desktop window
+compdroid inspect D:\dumps\MyGame      # or the CLI: folder holding exefs\ and romfs\
 compdroid scan    D:\dumps\MyGame      # what native mode must rewrite
 ```
+
+![Native scan](docs/images/gui-scan.png)
+
+The window loads a dump, shows the game card (title ID, profile, version, RomFS, rewrite sites),
+the code modules, the native scan, and the **in-game settings** a fresh install starts with:
+Vulkan driver (system or a Turnip zip), target FPS, internal resolution, upscaler (FSR 1 /
+Snapdragon GSR 1), frame generation, anti-aliasing and aspect ratio. Defaults are saved per game to
+`%USERPROFILE%\CompDroid\out\<title id>\default_settings.json`. The Build APK tab is laid out and
+switches on with M1.
+
+![In-game settings](docs/images/gui-settings.png)
 
 `inspect` prints the title ID, each module's build ID, the RomFS size and whether a profile
 in `profiles/` matches. `scan` lists every `svc` (by Horizon system call), every TLS and

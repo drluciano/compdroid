@@ -1,5 +1,6 @@
 """compdroid command line.
 
+    compdroid gui              open the desktop window
     compdroid inspect <dump>   identify the game, version and profile match
     compdroid scan <dump>      list what native mode must rewrite in the game code
 """
@@ -9,56 +10,14 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from pathlib import Path
 
-from . import __version__
+from . import __version__, api
 from .dump import DumpError, open_dump
-from .profiles import ProfileError, default_profiles_dir, find, load_all
-from .scan import SVC_NAMES, SYSREG_PATTERNS, scan_module
-
-
-def _human(n: int) -> str:
-    size = float(n)
-    for unit in ("B", "KB", "MB", "GB"):
-        if size < 1024 or unit == "GB":
-            return f"{size:.1f} {unit}" if unit != "B" else f"{int(size)} B"
-        size /= 1024
-    return f"{n} B"
+from .profiles import ProfileError, default_profiles_dir
 
 
 def cmd_inspect(args: argparse.Namespace) -> int:
-    dump = open_dump(args.dump)
-    profiles = load_all(Path(args.profiles))
-    main = dump.modules["main"]
-    prof, ver = find(profiles, dump.npdm.title_id, main.build_id)
-
-    info = {
-        "title_id": dump.npdm.title_id,
-        "npdm_name": dump.npdm.name,
-        "address_space": dump.npdm.address_space,
-        "main_thread": {
-            "priority": dump.npdm.main_thread_priority,
-            "core": dump.npdm.main_thread_core,
-            "stack_size": dump.npdm.main_thread_stack_size,
-        },
-        "modules": {
-            name: {
-                "build_id": nso.build_id,
-                "text": nso.segments["text"].size,
-                "ro": nso.segments["ro"].size,
-                "data": nso.segments["data"].size,
-                "bss": nso.bss_size,
-            }
-            for name, nso in dump.modules.items()
-        },
-        "romfs": None
-        if dump.romfs is None
-        else {"kind": dump.romfs.kind, "files": dump.romfs.file_count, "bytes": dump.romfs.total_bytes},
-        "profile": None
-        if prof is None
-        else {"name": prof.name, "file": str(prof.path), "version": ver.version if ver else None,
-              "status": ver.status if ver else "unknown build"},
-    }
+    info = api.inspect(args.dump, args.profiles)
     if args.json:
         print(json.dumps(info, indent=2))
         return 0
@@ -67,52 +26,46 @@ def cmd_inspect(args: argparse.Namespace) -> int:
     print(f"Address space {info['address_space']}")
     print("Modules")
     for name, m in info["modules"].items():
-        print(f"  {name:<9} build {m['build_id']}  text {_human(m['text'])}")
-    if dump.romfs is None:
+        print(f"  {name:<9} build {m['build_id']}  text {api.human(m['text'])}")
+    rf = info["romfs"]
+    if rf is None:
         print("RomFS         not found (expected romfs/ or romfs.bin next to exefs/)")
     else:
-        print(f"RomFS         {dump.romfs.kind}, {dump.romfs.file_count} files, {_human(dump.romfs.total_bytes)}")
+        print(f"RomFS         {rf['kind']}, {rf['files']} files, {api.human(rf['bytes'])}")
+    prof = info["profile"]
     if prof is None:
         print("Profile       none for this title: generic best effort only")
-    elif ver is None:
-        print(f"Profile       {prof.name}, but this build is not listed (add it to {prof.path.name})")
+    elif prof["version"] is None:
+        print(f"Profile       {prof['name']}, but this build is not listed (add it to {prof['file']})")
     else:
-        print(f"Profile       {prof.name} {ver.version} [{ver.status}], {len(ver.patches)} patch(es)")
+        print(f"Profile       {prof['name']} {prof['version']} [{prof['status']}], {prof['patches']} patch(es)")
     return 0
 
 
 def cmd_scan(args: argparse.Namespace) -> int:
-    dump = open_dump(args.dump)
-    results = [scan_module(name, nso) for name, nso in dump.modules.items() if name != "rtld" or args.all]
-
+    results = api.scan(open_dump(args.dump), include_rtld=args.all)
     if args.json:
-        print(json.dumps(
-            [
-                {
-                    "module": r.module,
-                    "text_size": r.text_size,
-                    "svc": {f"0x{k:02X}": v for k, v in sorted(r.svc.items())},
-                    "sysreg": dict(r.sysreg),
-                    "page16k_issues": r.page16k_issues,
-                }
-                for r in results
-            ],
-            indent=2,
-        ))
+        print(json.dumps(results, indent=2))
         return 0
 
     total = 0
     for r in results:
-        total += r.rewrite_sites
-        print(f"{r.module}  (.text {_human(r.text_size)}): {r.rewrite_sites} rewrite site(s)")
-        for num, count in sorted(r.svc.items()):
-            print(f"    svc 0x{num:02X} {SVC_NAMES.get(num, '?'):<28} x{count}")
-        notes = {v[0]: v[1] for v in SYSREG_PATTERNS.values()}
-        for reg, count in r.sysreg.most_common():
-            print(f"    {reg:<32} x{count}   {notes[reg]}")
-        for issue in r.page16k_issues:
+        total += r["rewrite_sites"]
+        print(f"{r['module']}  (.text {api.human(r['text_size'])}): {r['rewrite_sites']} rewrite site(s)")
+        for num, count in r["svc"].items():
+            print(f"    svc {num} {api.svc_name(num):<28} x{count}")
+        for reg, count in r["sysreg"].items():
+            print(f"    {reg:<32} x{count}   {api.SYSREG_NOTES[reg]}")
+        for issue in r["page16k_issues"]:
             print(f"    16K: {issue}")
     print(f"Total: {total} candidate rewrite site(s). Everything else runs unchanged on the phone's CPU.")
+    return 0
+
+
+def cmd_gui(args: argparse.Namespace) -> int:
+    from .gui import run
+
+    run(initial_dump=args.dump, profiles_dir=args.profiles)
     return 0
 
 
@@ -122,6 +75,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--version", action="version", version=f"compdroid {__version__}")
     ap.add_argument("--profiles", default=str(default_profiles_dir()), help="profiles folder")
     sub = ap.add_subparsers(dest="cmd", required=True)
+
+    p = sub.add_parser("gui", help="open the desktop window")
+    p.add_argument("dump", nargs="?", help="optional dump folder to open")
+    p.set_defaults(func=cmd_gui)
 
     p = sub.add_parser("inspect", help="identify a dump and match it to a profile")
     p.add_argument("dump", help="folder containing exefs/ and romfs/ (extracted, from a game you own)")

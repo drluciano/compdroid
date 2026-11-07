@@ -15,6 +15,9 @@ test = ["pytest>=8"]
 [project.scripts]
 compdroid = "compdroid.cli:main"
 
+[project.gui-scripts]
+compdroid-gui = "compdroid.gui:main"
+
 [tool.setuptools.packages.find]
 include = ["compdroid*"]
 
