@@ -64,3 +64,30 @@ def default_output_dir() -> Path:
 
 def settings_path(output_dir: Path, title_id: str) -> Path:
     return output_dir / title_id / "default_settings.json"
+
+
+@dataclass
+class AppConfig:
+    """Machine-wide choices remembered between runs. Only *paths* are stored, never key contents."""
+
+    keys_path: str = ""
+    hactoolnet_path: str = ""
+    output_dir: str = ""
+
+    @staticmethod
+    def path() -> Path:
+        return Path.home() / "CompDroid" / "config.json"
+
+    @classmethod
+    def load(cls) -> "AppConfig":
+        try:
+            raw = json.loads(cls.path().read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return cls()
+        known = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in raw.items() if k in known})
+
+    def save(self) -> None:
+        p = self.path()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(asdict(self), indent=2), encoding="utf-8")

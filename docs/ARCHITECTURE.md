@@ -36,6 +36,11 @@ Living plan: <https://claude.ai/artifact/P67xPNjyF7Q2DNuGd199Kt>. This file reco
 
 ## Guardrails
 
-- Input is an extracted `exefs/` + `romfs/` only. NSP, XCI, NCA and key files are refused.
+- Input (changed 2026-11-07 at Dylan's request): `.nsp`/`.nsz`/`.xci`/`.xcz` with the user's own
+  `prod.keys`, or an extracted `exefs/` + `romfs/`. CompDroid contains no crypto: it unpacks the plain
+  PFS0 container and tickets itself, and runs the user-installed hactoolnet (and `nsz` for compressed
+  packages) for everything that needs keys. Updates are applied with `--basenca`. No firmware needed.
+- Keys never go into the repo or the APK (nsz gets a temporary copy in its work folder, deleted right after); only the path is remembered in
+  `%USERPROFILE%/CompDroid/config.json`.
 - No game code, assets, shaders, keys or firmware in this repo. `.gitignore` blocks the usual names.
 - Built APKs contain the user's game code and stay on the user's own devices.

@@ -14,9 +14,12 @@ from tkinter import filedialog, messagebox, ttk
 
 from . import __version__, api
 from .dump import Dump, DumpError, open_dump
+from .extract import ALL_SUFFIXES, ExtractError, extract_package
 from .profiles import ProfileError, default_profiles_dir
-from .settings import (ANTI_ALIASING, ASPECT, DRIVERS, FPS_TARGETS, FRAME_GEN, UPSCALERS, GameSettings,
-                       default_output_dir, settings_path)
+from .settings import (ANTI_ALIASING, ASPECT, DRIVERS, FPS_TARGETS, FRAME_GEN, UPSCALERS, AppConfig,
+                       GameSettings, default_output_dir, settings_path)
+
+PACKAGE_TYPES = [("Switch game package", "*.nsp *.nsz *.xci *.xcz"), ("All files", "*.*")]
 
 BG = "#16181d"
 PANEL = "#1f2229"
@@ -78,13 +81,17 @@ class App:
         self._q: queue.Queue = queue.Queue()
 
         root.title("CompDroid")
-        root.geometry("1040x700")
-        root.minsize(860, 560)
+        root.geometry("1060x760")
+        root.minsize(900, 620)
         _style(root)
 
         self.dump_var = tk.StringVar()
-        self.out_var = tk.StringVar(value=str(default_output_dir()))
-        self.status_var = tk.StringVar(value="Pick the folder that holds your game's extracted exefs and romfs.")
+        self.cfg = AppConfig.load()
+        self.out_var = tk.StringVar(value=self.cfg.output_dir or str(default_output_dir()))
+        self.keys_var = tk.StringVar(value=self.cfg.keys_path)
+        self.update_var = tk.StringVar()
+        self.hac_var = tk.StringVar(value=self.cfg.hactoolnet_path)
+        self.status_var = tk.StringVar(value="Pick your game's .nsp / .xci (with your prod.keys) or an extracted folder.")
 
         self._build_header()
         self._build_picker()
@@ -107,14 +114,24 @@ class App:
 
     def _build_picker(self) -> None:
         f = ttk.Frame(self.root)
-        f.pack(fill="x", padx=16, pady=(4, 12))
-        ttk.Label(f, text="Game folder").pack(side="left", padx=(0, 8))
+        f.pack(fill="x", padx=16, pady=(4, 8))
+        ttk.Label(f, text="Game", width=9).pack(side="left", padx=(0, 8))
         e = ttk.Entry(f, textvariable=self.dump_var)
         e.pack(side="left", fill="x", expand=True)
         e.bind("<Return>", lambda _e: self.inspect())
-        ttk.Button(f, text="Browse…", command=self.browse).pack(side="left", padx=(8, 0))
-        self.inspect_btn = ttk.Button(f, text="Inspect", style="Accent.TButton", command=self.inspect)
+        ttk.Button(f, text="Package…", command=self.browse_package).pack(side="left", padx=(8, 0))
+        ttk.Button(f, text="Folder…", command=self.browse).pack(side="left", padx=(8, 0))
+        self.inspect_btn = ttk.Button(f, text="Open", style="Accent.TButton", command=self.inspect)
         self.inspect_btn.pack(side="left", padx=(8, 0))
+
+        g = ttk.Frame(self.root)
+        g.pack(fill="x", padx=16, pady=(0, 12))
+        ttk.Label(g, text="prod.keys", width=9).pack(side="left", padx=(0, 8))
+        ttk.Entry(g, textvariable=self.keys_var).pack(side="left", fill="x", expand=True)
+        ttk.Button(g, text="Browse…", command=self._pick_keys).pack(side="left", padx=(8, 16))
+        ttk.Label(g, text="Update (optional)").pack(side="left", padx=(0, 8))
+        ttk.Entry(g, textvariable=self.update_var).pack(side="left", fill="x", expand=True)
+        ttk.Button(g, text="Browse…", command=self._pick_update).pack(side="left", padx=(8, 0))
 
     def _build_game_card(self, parent: ttk.Frame) -> None:
         card = ttk.Frame(parent, style="Panel.TFrame", padding=16)
@@ -132,7 +149,7 @@ class App:
             v = ttk.Label(card, text="–", style="Value.TLabel", wraplength=248)
             v.grid(row=i * 2, column=0, sticky="w")
             self.card_rows[key] = v
-        ttk.Label(card, text="Only extracted folders are read. NSP/XCI files and keys are refused.",
+        ttk.Label(card, text="Your keys and games never leave this PC.",
                   style="PanelMuted.TLabel", wraplength=248).grid(row=40, column=0, sticky="sw", pady=(18, 0))
         card.rowconfigure(39, weight=1)
 
@@ -171,10 +188,30 @@ class App:
 
         # Log
         f = ttk.Frame(nb, style="Panel.TFrame", padding=12)
+        self.log_tab = f
         self.log = tk.Text(f, bg=PANEL, fg=TEXT, insertbackground=TEXT, relief="flat", wrap="word",
                            font=("Consolas", 9), height=10)
         self.log.pack(fill="both", expand=True)
         nb.add(f, text="Log")
+
+        # Setup
+        f = ttk.Frame(nb, style="Panel.TFrame", padding=16)
+        f.columnconfigure(1, weight=1)
+        ttk.Label(f, text="Tools for opening packages", style="H2.TLabel").grid(row=0, column=0, columnspan=3,
+                                                                              sticky="w")
+        ttk.Label(f, text="CompDroid has no decryption code of its own. It runs hactoolnet (LibHac, from "
+                          "github.com/Thealexbarney/LibHac/releases) with your prod.keys. Put hactoolnet.exe in "
+                          "the repo's tools folder, or choose it here. Compressed .nsz/.xcz also need: "
+                          "py -m pip install nsz. No firmware is needed.", style="PanelMuted.TLabel",
+                  wraplength=640).grid(row=1, column=0, columnspan=3, sticky="w", pady=(0, 12))
+        ttk.Label(f, text="hactoolnet", style="Panel.TLabel").grid(row=2, column=0, sticky="w", padx=(0, 12))
+        ttk.Entry(f, textvariable=self.hac_var).grid(row=2, column=1, sticky="ew")
+        ttk.Button(f, text="Browse…", command=self._pick_hac).grid(row=2, column=2, padx=(8, 0))
+        ttk.Label(f, text="Leave empty to use tools\\hactoolnet.exe or PATH.", style="PanelMuted.TLabel").grid(
+            row=3, column=1, sticky="w")
+        ttk.Button(f, text="Remember these paths", command=self._save_cfg).grid(row=4, column=0, sticky="w",
+                                                                               pady=(16, 0))
+        nb.add(f, text="Setup")
 
     def _tree(self, parent, cols, heads, widths) -> ttk.Treeview:
         t = ttk.Treeview(parent, columns=cols, show="headings", selectmode="browse")
@@ -271,20 +308,46 @@ class App:
 
     # ---------- actions ----------
     def browse(self) -> None:
-        d = filedialog.askdirectory(title="Folder with your extracted exefs and romfs")
+        d = filedialog.askdirectory(title="Folder with extracted exefs and romfs")
         if d:
             self.dump_var.set(d)
+            self.inspect()
+
+    def browse_package(self) -> None:
+        p = filedialog.askopenfilename(title="Your game package", filetypes=PACKAGE_TYPES)
+        if p:
+            self.dump_var.set(p)
             self.inspect()
 
     def inspect(self) -> None:
         path = self.dump_var.get().strip()
         if not path:
-            self.browse()
+            self.browse_package()
             return
-        self._busy(f"Reading {path}…")
+        is_pkg = Path(path).is_file() and Path(path).suffix.lower() in ALL_SUFFIXES
+        keys = self.keys_var.get().strip()
+        if is_pkg and not keys:
+            messagebox.showinfo("CompDroid", "Choose your prod.keys first. It is only used on this PC to "
+                                             "open your own game package.")
+            self._pick_keys()
+            keys = self.keys_var.get().strip()
+            if not keys:
+                return
+        update = self.update_var.get().strip() or None
+        hac = self.hac_var.get().strip() or None
+        out = Path(self.out_var.get())
+        self._busy(f"Extracting {Path(path).name}…" if is_pkg else f"Reading {path}…")
+        if is_pkg:
+            self.nb.select(self.log_tab)
 
         def work():
-            dump = open_dump(path)
+            root = path
+            if is_pkg:
+                res = extract_package(path, keys, out / Path(path).stem, update=update, hactoolnet=hac,
+                                      log=lambda m: self._q.put((self._log, m, None)))
+                root = str(res.root)
+                self._q.put((self._remember_keys, None, None))
+            dump = open_dump(root)
             return dump, api.inspect(dump, self.profiles_dir)
 
         self._run(work, self._inspected)
@@ -390,6 +453,32 @@ class App:
         if p:
             self.svars["driver_zip"].set(p)
 
+    def _pick_keys(self) -> None:
+        p = filedialog.askopenfilename(title="Your prod.keys", filetypes=[("Keys", "*.keys *.txt"), ("All", "*.*")])
+        if p:
+            self.keys_var.set(p)
+
+    def _pick_update(self) -> None:
+        p = filedialog.askopenfilename(title="Update package (optional)", filetypes=PACKAGE_TYPES)
+        if p:
+            self.update_var.set(p)
+
+    def _pick_hac(self) -> None:
+        p = filedialog.askopenfilename(title="hactoolnet", filetypes=[("Program", "*.exe"), ("All", "*.*")])
+        if p:
+            self.hac_var.set(p)
+
+    def _save_cfg(self) -> None:
+        self.cfg.keys_path = self.keys_var.get().strip()
+        self.cfg.hactoolnet_path = self.hac_var.get().strip()
+        self.cfg.output_dir = self.out_var.get().strip()
+        self.cfg.save()
+        self._idle(f"Saved paths to {AppConfig.path()}")
+
+    def _remember_keys(self, _none=None) -> None:
+        if self.keys_var.get().strip() != self.cfg.keys_path:
+            self._save_cfg()
+
     def _pick_out(self) -> None:
         d = filedialog.askdirectory(title="Where to put builds")
         if d:
@@ -428,7 +517,7 @@ class App:
                 if err is None:
                     on_done(result)
                 else:
-                    msg = str(err) if isinstance(err, (DumpError, ProfileError)) else \
+                    msg = str(err) if isinstance(err, (DumpError, ProfileError, ExtractError)) else \
                         "".join(traceback.format_exception(err))
                     self._log(f"Error: {msg}")
                     self.scan_btn.configure(state="normal" if self.dump else "disabled")

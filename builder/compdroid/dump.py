@@ -15,7 +15,7 @@ from .formats import FormatError, Npdm, Nso, parse_npdm, parse_nso
 # Load order on the console: rtld first, then main, then the SDK and subsdks.
 EXEFS_MODULES = ["rtld", "main"] + [f"subsdk{i}" for i in range(10)] + ["sdk"]
 
-REFUSED_SUFFIXES = {".nsp", ".nsz", ".xci", ".xcz", ".nca", ".ncz", ".keys"}
+REFUSED_SUFFIXES = {".nsp", ".nsz", ".xci", ".xcz", ".nca", ".ncz", ".keys"}  # not readable as a dump folder
 
 
 class DumpError(ValueError):
@@ -42,14 +42,13 @@ class Dump:
 def _refuse_containers(path: Path) -> None:
     if path.is_file() and path.suffix.lower() in REFUSED_SUFFIXES:
         raise DumpError(
-            f"{path.name}: CompDroid does not open {path.suffix} files or keys. {NOT_EXTRACTED_HELP}"
+            f"{path.name} is a package, not an extracted game folder. {NOT_EXTRACTED_HELP}"
         )
 
 
 NOT_EXTRACTED_HELP = (
-    "CompDroid reads the game's extracted files, not .nsp/.xci packages: it never decrypts "
-    "anything or reads keys. Extract the package's ExeFS and RomFS with the Switch tool you "
-    "already use, then pick the folder that holds exefs/ and romfs/."
+    "Packages are extracted first with your own prod.keys: run  compdroid extract <file> --keys "
+    "<prod.keys>, pass --keys to inspect/scan, or open the file in the window."
 )
 
 

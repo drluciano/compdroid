@@ -25,3 +25,7 @@ __pycache__/
 build/
 dist/
 .pytest_cache/
+
+# Helper binaries the user downloads
+tools/*
+!tools/README.md

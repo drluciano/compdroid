@@ -11,10 +11,11 @@ The design follows the native-execution ports (d2r-mobile, MacNativeGames, BOTWR
 Native Mode) and starts from the LAS Recomp / LASRecompAndroid engine (MIT).
 Full research and plan: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-> **No game files, keys or firmware are included or downloaded.** CompDroid only reads an
-> already-extracted `exefs/` + `romfs/` folder from your own copy. It does not open NSP/XCI
-> files, read `prod.keys`, or decrypt anything. APKs it builds contain your game's code: keep
-> them on your own devices.
+> **No game files, keys or firmware are included or downloaded.** You supply your own game
+> (`.nsp`, `.nsz`, `.xci`, `.xcz`, or an extracted `exefs/` + `romfs/` folder) and your own
+> `prod.keys` from your console. CompDroid has no decryption code: packages are opened by
+> [hactoolnet](https://github.com/Thealexbarney/LibHac/releases), which you download into `tools/`.
+> No firmware is needed. APKs it builds contain your game's code: keep them on your own devices.
 
 ## Status
 
@@ -32,13 +33,21 @@ Requires Python 3.11+ from python.org or `winget install Python.Python.3.12` (Tk
 
 Easiest: double-click **`CompDroid.pyw`** in the repo folder. No install needed.
 
+To open `.nsp` / `.xci` directly, download `hactoolnet` from
+[LibHac's releases](https://github.com/Thealexbarney/LibHac/releases) into `tools\`
+(see [tools/README.md](tools/README.md)). For `.nsz` / `.xcz`, also run `py -m pip install nsz`.
+In the window: **Package…**, pick your game, point **prod.keys** at your keys file, optionally add
+an update package, then **Open**. The extracted game goes to `%USERPROFILE%\CompDroid\out\<name>\game`.
+
 Or from PowerShell in the repo folder:
 
 ```powershell
 py -m pip install -e builder
 py -m compdroid gui                      # the desktop window
 
-py -m compdroid inspect D:\dumps\MyGame   # or the CLI: folder holding exefs\ and romfs\
+py -m compdroid extract D:\games\MyGame.nsp --keys D:\keys\prod.keys --remember
+py -m compdroid inspect D:\games\MyGame.nsp   # packages or extracted folders both work
+py -m compdroid inspect D:\dumps\MyGame       # folder holding exefs\ and romfs\
 py -m compdroid scan    D:\dumps\MyGame   # what native mode must rewrite
 ```
 

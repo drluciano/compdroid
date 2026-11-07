@@ -70,7 +70,7 @@ def test_refuses_containers_and_keys(tmp_path):
     for name in ("game.nsp", "game.xci", "prod.keys"):
         p = tmp_path / name
         p.write_bytes(b"\0")
-        with pytest.raises(DumpError, match="does not open"):
+        with pytest.raises(DumpError, match="is a package|not an extracted"):
             open_dump(p)
 
 
