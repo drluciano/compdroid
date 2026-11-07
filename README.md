@@ -30,12 +30,20 @@ Full research and plan: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 Requires Python 3.11+ from python.org or `winget install Python.Python.3.12` (Tkinter is included).
 
+Easiest: double-click **`CompDroid.pyw`** in the repo folder. No install needed.
+
+Or from PowerShell in the repo folder:
+
 ```powershell
 py -m pip install -e builder
-compdroid-gui                            # the desktop window
-compdroid inspect D:\dumps\MyGame      # or the CLI: folder holding exefs\ and romfs\
-compdroid scan    D:\dumps\MyGame      # what native mode must rewrite
+py -m compdroid gui                      # the desktop window
+
+py -m compdroid inspect D:\dumps\MyGame   # or the CLI: folder holding exefs\ and romfs\
+py -m compdroid scan    D:\dumps\MyGame   # what native mode must rewrite
 ```
+
+(`compdroid` and `compdroid-gui` also work as bare commands once Python's Scripts folder,
+e.g. `%APPDATA%\Python\Python3xx\Scripts`, is on your PATH.)
 
 ![Native scan](docs/images/gui-scan.png)
 
