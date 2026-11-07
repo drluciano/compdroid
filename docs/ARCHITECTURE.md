@@ -40,6 +40,8 @@ Living plan: <https://claude.ai/artifact/P67xPNjyF7Q2DNuGd199Kt>. This file reco
   `prod.keys`, or an extracted `exefs/` + `romfs/`. CompDroid contains no crypto: it unpacks the plain
   PFS0 container and tickets itself, and runs the user-installed hactoolnet (and `nsz` for compressed
   packages) for everything that needs keys. Updates are applied with `--basenca`. No firmware needed.
+  hactoolnet is not downloaded: LibHac was removed from GitHub by a Nintendo DMCA notice (May 2025),
+  so CompDroid only uses a copy the user already has and never fetches it from mirrors.
 - Keys never go into the repo or the APK (nsz gets a temporary copy in its work folder, deleted right after); only the path is remembered in
   `%USERPROFILE%/CompDroid/config.json`.
 - No game code, assets, shaders, keys or firmware in this repo. `.gitignore` blocks the usual names.

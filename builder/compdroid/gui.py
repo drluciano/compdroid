@@ -199,15 +199,16 @@ class App:
         f.columnconfigure(1, weight=1)
         ttk.Label(f, text="Tools for opening packages", style="H2.TLabel").grid(row=0, column=0, columnspan=3,
                                                                               sticky="w")
-        ttk.Label(f, text="CompDroid has no decryption code of its own. It runs hactoolnet (LibHac) with your "
-                          "prod.keys, and downloads hactoolnet from LibHac's GitHub releases into the tools folder "
-                          "the first time you open a package. Compressed .nsz/.xcz "
-                          "also need: py -m pip install nsz. No firmware is needed.", style="PanelMuted.TLabel",
+        ttk.Label(f, text="CompDroid has no decryption code of its own. To open packages it runs a hactoolnet "
+                          "(LibHac) you already have, with your prod.keys. It does not download hactoolnet: LibHac "
+                          "was taken off GitHub by a DMCA notice in 2025. Without it, open an extracted folder "
+                          "(exefs + romfs) instead. Compressed .nsz/.xcz also need: py -m pip install nsz. "
+                          "No firmware is needed.", style="PanelMuted.TLabel",
                   wraplength=640).grid(row=1, column=0, columnspan=3, sticky="w", pady=(0, 12))
         ttk.Label(f, text="hactoolnet", style="Panel.TLabel").grid(row=2, column=0, sticky="w", padx=(0, 12))
         ttk.Entry(f, textvariable=self.hac_var).grid(row=2, column=1, sticky="ew")
         ttk.Button(f, text="Browse…", command=self._pick_hac).grid(row=2, column=2, padx=(8, 0))
-        ttk.Label(f, text="Leave empty to use tools\\hactoolnet.exe, PATH, or an automatic download.", style="PanelMuted.TLabel").grid(
+        ttk.Label(f, text="Leave empty to use tools\\hactoolnet.exe or PATH.", style="PanelMuted.TLabel").grid(
             row=3, column=1, sticky="w")
         ttk.Button(f, text="Remember these paths", command=self._save_cfg).grid(row=4, column=0, sticky="w",
                                                                                pady=(16, 0))

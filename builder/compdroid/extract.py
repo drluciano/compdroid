@@ -4,6 +4,9 @@ CompDroid contains no decryption code and ships no keys or firmware. It orchestr
 hactoolnet (LibHac's command-line tool, which you install yourself) with the prod.keys
 file you supply from your own console:
 
+hactoolnet is not downloaded for you (LibHac was removed from GitHub by a DMCA notice in
+May 2025); use a copy you already have, or open an extracted folder instead.
+
 1. NSP: CompDroid unpacks the outer PFS0 container itself (it is not encrypted) and turns
    each .tik ticket into a title.keys entry. XCI: hactoolnet extracts the secure partition.
 2. hactoolnet reports each NCA's content type; the Program NCA holds the game.
@@ -125,10 +128,11 @@ def write_title_keys(tickets: Sequence[Path], dst: Path) -> int:
 
 # ---------- hactoolnet ----------
 
-def find_hactoolnet(explicit: str | os.PathLike | None = None, auto_download: bool = False,
-                    log: Log = print) -> list[str]:
-    """Command prefix for hactoolnet. Order: explicit path, tools/ next to the repo, PATH,
-    then (with auto_download) a fresh download from LibHac's releases into tools/."""
+def find_hactoolnet(explicit: str | os.PathLike | None = None) -> list[str]:
+    """Command prefix for hactoolnet. Order: explicit path, tools/ next to the repo, PATH.
+
+    CompDroid does not download it: LibHac's GitHub repository was taken down by a
+    Nintendo DMCA notice in May 2025, and CompDroid does not fetch it from mirrors."""
     cands: list[Path] = []
     if explicit:
         cands.append(Path(explicit))
@@ -141,14 +145,9 @@ def find_hactoolnet(explicit: str | os.PathLike | None = None, auto_download: bo
         w = shutil.which(name)
         if w:
             return [w]
-    if auto_download:
-        from .autosetup import download_hactoolnet
-
-        return [str(download_hactoolnet(repo_tools, log=log))]
     raise ExtractError(
-        "hactoolnet not found. Download it from LibHac's releases "
-        "(github.com/Thealexbarney/LibHac/releases) and put hactoolnet.exe in the repo's tools/ "
-        "folder, or choose it in the window's Setup section."
+        "hactoolnet not found. If you already have hactoolnet.exe, put it in the repo's tools folder or "
+        "choose it in Setup. Otherwise open an extracted folder (exefs + romfs) instead of a package."
     )
 
 
@@ -278,7 +277,7 @@ def extract_package(package: str | os.PathLike, keys: str | os.PathLike | None, 
     if not keys:
         raise ExtractError("choose your prod.keys file")
     cmd = list(hactoolnet) if isinstance(hactoolnet, (list, tuple)) else \
-        find_hactoolnet(hactoolnet, auto_download=True, log=log)
+        find_hactoolnet(hactoolnet)
     work = out_root / "_work"
     work.mkdir(parents=True, exist_ok=True)
     tool = Hactoolnet(cmd, Path(keys), log=log)
