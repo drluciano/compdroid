@@ -42,15 +42,24 @@ class Dump:
 def _refuse_containers(path: Path) -> None:
     if path.is_file() and path.suffix.lower() in REFUSED_SUFFIXES:
         raise DumpError(
-            f"{path.name}: CompDroid does not open {path.suffix} files or keys. "
-            "Point it at a folder with the extracted exefs/ and romfs/ of a game you own."
+            f"{path.name}: CompDroid does not open {path.suffix} files or keys. {NOT_EXTRACTED_HELP}"
         )
+
+
+NOT_EXTRACTED_HELP = (
+    "CompDroid reads the game's extracted files, not .nsp/.xci packages: it never decrypts "
+    "anything or reads keys. Extract the package's ExeFS and RomFS with the Switch tool you "
+    "already use, then pick the folder that holds exefs/ and romfs/."
+)
 
 
 def _find_exefs(root: Path) -> Path:
     for cand in (root / "exefs", root / "ExeFS", root):
         if (cand / "main.npdm").is_file() and (cand / "main").is_file():
             return cand
+    packages = sorted(p.name for p in root.iterdir() if p.is_file() and p.suffix.lower() in REFUSED_SUFFIXES)
+    if packages:
+        raise DumpError(f"found {', '.join(packages[:3])} but no extracted game here. {NOT_EXTRACTED_HELP}")
     raise DumpError(f"no exefs found under {root} (expected exefs/main and exefs/main.npdm)")
 
 

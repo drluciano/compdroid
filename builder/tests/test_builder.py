@@ -141,3 +141,9 @@ def test_settings_roundtrip_and_validation(tmp_path):
     assert GameSettings.load(tmp_path / "missing.json") == GameSettings()
     bad = GameSettings(driver="Custom driver (zip)", resolution_scale=500, target_fps="144")
     assert len(bad.validate()) == 3
+
+
+def test_folder_with_only_a_package_explains(tmp_path):
+    (tmp_path / "MyGame.nsp").write_bytes(b"\0")
+    with pytest.raises(DumpError, match="found MyGame.nsp but no extracted game"):
+        open_dump(tmp_path)
