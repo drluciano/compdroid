@@ -1,0 +1,27 @@
+# Never commit game data, keys or anything built from them.
+out/
+dumps/
+*.apk
+*.aab
+*.nsp
+*.nsz
+*.xci
+*.xcz
+*.nca
+*.keys
+prod.keys
+title.keys
+exefs/
+romfs/
+romfs.bin
+*.jks
+*.keystore
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+build/
+dist/
+.pytest_cache/

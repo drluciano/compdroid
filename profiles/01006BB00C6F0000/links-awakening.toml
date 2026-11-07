@@ -1,0 +1,23 @@
+# First target (M2). Build IDs are left empty on purpose: fill them from
+# `compdroid inspect <your dump>` on your own copy. No game data goes here.
+
+[game]
+title_id = "01006BB00C6F0000"
+name = "The Legend of Zelda: Link's Awakening"
+
+notes = "Reference engine: LAS Recomp (MIT) and LASRecompAndroid."
+
+[[versions]]
+version = "1.0.0"
+main_build_id = ""
+status = "untested"
+
+[[versions]]
+version = "1.0.1"
+main_build_id = ""
+status = "untested"
+
+[[versions]]
+version = "1.1.0"
+main_build_id = ""
+status = "untested"
